@@ -31,7 +31,7 @@ export const supportedChatModelKeys = Object.keys({ ...supportedChatModels })
 
 const tpCache : Record<string, ModelDetail> = {}
 
-export const getModelDetail = (model: Model): ModelDetail => {
+export const getModelDetail = (model: Model, apiDetails?): ModelDetail => {
   // Ensure model is a string for typesafety
     if (typeof model !== 'string') {
       console.warn('Invalid type for model:', model)
@@ -44,22 +44,36 @@ export const getModelDetail = (model: Model): ModelDetail => {
 
     // Attempt to fetch the model details directly from lookupList or cache
     let result = lookupList[model] || tpCache[model]
-    if (result) {
+    if (result && !apiDetails) {
       return result
     }
 
-    // No direct match found, attempting to find the closest match
-    const sortedKeys = Object.keys(lookupList).sort((a, b) => b.length - a.length) // Longest to shortest for best match
-    const bestMatchKey = sortedKeys.find(key => model.startsWith(key))
-
-    if (bestMatchKey) {
-      result = lookupList[bestMatchKey]
-    } else {
-      console.warn('Unable to find model detail for:', model)
+    if (apiDetails?.pricing !== undefined) {
+      // if Openrouter supplied us some pricing info, take that
       result = {
         ...fallbackModelDetail,
         id: model,
-        modelQuery: model
+        modelQuery: model,
+        prompt: parseFloat(apiDetails.pricing.prompt),
+        completion: parseFloat(apiDetails.pricing.completion)
+      }
+      if (apiDetails.context_length !== undefined) {
+        result.max = apiDetails.context_length
+      }
+    } else {
+      // No direct match found, attempting to find the closest match
+      const sortedKeys = Object.keys(lookupList).sort((a, b) => b.length - a.length) // Longest to shortest for best match
+      const bestMatchKey = sortedKeys.find(key => model.startsWith(key))
+
+      if (bestMatchKey) {
+        result = lookupList[bestMatchKey]
+      } else {
+        console.warn('Unable to find model detail for:', model)
+        result = {
+          ...fallbackModelDetail,
+          id: model,
+          modelQuery: model
+        }
       }
     }
 
@@ -184,7 +198,7 @@ export async function getChatModelOptions (): Promise<SelectOption[]> {
   
     for (let i = 0, l = models.length; i < l; i++) {
       const model = models[i]
-      const modelDetail = getModelDetail(model)
+      const modelDetail = getModelDetail(model, remoteModels[model])
       await modelDetail.check(modelDetail)
       const pushTarget = modelDetail.enabled ? modelOptionsActive : modelOptionsInactive
       pushTarget.push({
