@@ -51,6 +51,8 @@ export const chatRequest = async (
             if (!chatResponse.hasFinished()) {
               if (ev.data === '[DONE]') {
               // ?? anything to do when "[DONE]"?
+              } else if (ev.data === '') {
+              // ?? Openrouter emits empty lines sometimes
               } else {
                 const data = JSON.parse(ev.data)
                 // console.log('data', data)
