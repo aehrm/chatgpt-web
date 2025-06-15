@@ -44,9 +44,6 @@ export const chatRequest = async (
           ...fetchOptions,
           openWhenHidden: true,
           onmessage (ev) {
-          // Remove updating indicator
-            chatRequest.updating = 1 // hide indicator, but still signal we're updating
-            chatRequest.updatingMessage = ''
             // console.log('ev.data', ev.data)
             if (!chatResponse.hasFinished()) {
               if (ev.data === '[DONE]') {
@@ -54,6 +51,9 @@ export const chatRequest = async (
               } else if (ev.data === '') {
               // ?? Openrouter emits empty lines sometimes
               } else {
+                // Remove updating indicator
+                chatRequest.updating = 1 // hide indicator, but still signal we're updating
+                chatRequest.updatingMessage = ''
                 const data = JSON.parse(ev.data)
                 // console.log('data', data)
                 window.setTimeout(() => { chatResponse.updateFromAsyncResponse(data) }, 1)
